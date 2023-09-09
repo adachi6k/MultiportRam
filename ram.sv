@@ -1,3 +1,53 @@
+module lx_ram_nrnw
+#(parameter Width=8,  // Set a non-zero default
+  parameter Depth=1,  // Set a non-zero default
+  parameter RdNum=1,  // Set a non-zero default
+  parameter WrNum=1   // Set a non-zero default
+  )
+  (
+    output logic [RdNum-1:0][Width-1:0] dout,
+    input logic clk,
+    input logic [WrNum-1:0][$clog2(Depth)-1:0] wa,
+    input logic [WrNum-1:0]we,
+    input logic [WrNum-1:0][Width-1:0] din,
+    input logic [RdNum-1:0][$clog2(Depth)-1:0] ra
+  );
+
+  // Select lvt_ram_nrnw or xor_ram_nrnw
+  if ((RdNum < 2)&&(Width<8)||
+      (Depth <= 16)&&(Width>64)) begin: g_xor
+    xor_ram_nrnw
+    #(.Width(Width), .Depth(Depth), .RdNum(RdNum), .WrNum(WrNum))
+    ram (.dout(dout), .clk(clk), .wa(wa), .we(we), .din(din), .ra(ra) );
+  end else begin: g_lvt
+    lvt_ram_nrnw
+    #(.Width(Width), .Depth(Depth), .RdNum(RdNum), .WrNum(WrNum))
+    ram (.dout(dout), .clk(clk), .wa(wa), .we(we), .din(din), .ra(ra) );
+  end
+
+`define DEBUG
+`ifdef DEBUG
+  logic [Width-1:0] debug_rf[Depth];
+  always_ff @(posedge clk)   begin
+    for (int i=0; i<WrNum; i++) begin
+        if (we[i])
+            debug_rf[wa[i]] <= #1 din[i];
+    end
+  end
+  logic [Width-1:0] debug_rdout[RdNum];
+
+  for (genvar i=0; i<RdNum; i++) begin: debug_rd
+    assign debug_rdout[i] = debug_rf[ra[i]];
+    always @(posedge clk) begin
+        if (dout[i] != debug_rf[ra[i]]) begin
+           $display("dout[%d]=%x, debug_rf=%x, ra=%d", i, dout[i], debug_rf[ra[i]], ra[i]);
+        end    
+    end
+  end
+`endif
+
+endmodule
+
 module lvt_ram_nrnw
 #(parameter Width=8,  // Set a non-zero default
   parameter Depth=1,
@@ -109,27 +159,6 @@ module xor_ram_nrnw
     end
   end
 
-`define DEBUG
-`ifdef DEBUG
-  logic [Width-1:0] debug_rf[Depth];
-  always_ff @(posedge clk)   begin
-    for (int i=0; i<WrNum; i++) begin
-        if (we[i])
-            debug_rf[wa[i]] <= #1 din[i];
-    end
-  end
-  logic [Width-1:0] debug_rdout[RdNum];
-
-  for (genvar i=0; i<RdNum; i++) begin: debug_rd
-    assign debug_rdout[i] = debug_rf[ra[i]];
-    always @(posedge clk) begin
-        if (dout[i] != debug_rf[ra[i]]) begin
-           $display("dout[%d]=%x, debug_rf=%x, ra=%d", i, dout[i], debug_rf[ra[i]], ra[i]);
-        end    
-    end
-  end
-`endif
-
 endmodule
 
 module dist_ram_1r1w
@@ -157,13 +186,13 @@ endmodule
 
 module tb_xor_ram_nrnw;
 
-  // パラメータ
+  // Parameter
   parameter Width = 32;
   parameter Depth = 32;
   parameter WrNum = 2;
   parameter RdNum = 4;
 
-  // シグナル
+  // Dut Interface
   logic clk;
   logic [RdNum-1:0][Width-1:0] dout;
   logic [RdNum-1:0][$clog2(Depth)-1:0] ra;
@@ -171,7 +200,7 @@ module tb_xor_ram_nrnw;
   logic [WrNum-1:0][Width-1:0] din;
   logic [WrNum-1:0][$clog2(Depth)-1:0] wa;
   
-  // クロック生成
+  // Clock Generation
   initial begin
     clk = 0;
     forever begin
@@ -179,8 +208,8 @@ module tb_xor_ram_nrnw;
     end
   end
 
-  // テスト対象のモジュール
-  lvt_ram_nrnw
+  // DUT
+  lx_ram_nrnw
   #(
     .Width(Width),
     .Depth(Depth),
@@ -196,12 +225,13 @@ module tb_xor_ram_nrnw;
     .ra(ra)
   );
 
-  // テストスティムラス
+  // Test Sequence
   initial begin
-    // 初期化
+    // Waveform Dump
     $dumpfile("dump.vcd");
     $dumpvars;
 
+    // Reset
     #1;
     for (int i = 0; i < WrNum; i++) begin
       wa[i] = i[$clog2(Depth)-1:0];
@@ -213,7 +243,7 @@ module tb_xor_ram_nrnw;
       ra[i] = i[$clog2(Depth)-1:0];
     end
 
-    // 1回目の書き込み
+    // Test Sequence #1
     @(posedge clk);
     we[0] = 1;
     we[1] = 1;
@@ -232,7 +262,7 @@ module tb_xor_ram_nrnw;
     we[0] = 0;
     we[1] = 0;
 
-    // 2回目の書き込み
+    // Test Sequence #2
     #10;
     we[0] = 1;
     we[1] = 1;
@@ -248,6 +278,8 @@ module tb_xor_ram_nrnw;
     #10;
     $finish;
   end
+
+  // Display Time for Debug
   always @(posedge clk) begin
     $display("time %t", $time);
   end
