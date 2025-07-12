@@ -1,0 +1,55 @@
+# Simulation outputs
+*.vcd
+*.fst
+*.wlf
+*.ucdb
+*.log
+*.jou
+*.pb
+*.str
+
+# Compiled binaries
+tb_*
+*_tb
+test_*
+sim
+a.out
+
+# Temporary files
+*.tmp
+temp.*
+temp_*
+*.bak
+*~
+
+# Simulator directories
+work/
+obj_dir/
+xsim.dir/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+
+# IDE files
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Coverage reports
+cov_work/
+*.cov
+
+# Synthesis outputs
+*.v
+*.edif
+*.json
+reports/
+logs/
+
+# Formal verification
+*.sby
+*.smt2
+engine_*/
