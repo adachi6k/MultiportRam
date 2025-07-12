@@ -58,10 +58,19 @@ test: run
 		echo "✅ Test PASSED - No errors detected"; \
 	fi
 
+# Test specific implementations and generate waveforms for documentation
+test-timing:
+	@echo "Running timing specification test..."
+	iverilog -g2012 -o tb_timing_spec $(DESIGN_SRC) tb_timing_spec.sv
+	./tb_timing_spec
+	@echo "✅ Timing test completed - check timing_spec.vcd for waveforms"
+	rm -f tb_timing_spec
+
 # Clean generated files
 clean:
 	@echo "Cleaning up..."
 	rm -f $(TESTBENCH) $(VCD_FILE) $(LOG_FILE)
+	rm -f tb_timing_spec timing_spec.vcd
 	rm -rf obj_dir/
 	rm -f *.jou *.log *.pb
 	rm -rf xsim.dir/
@@ -96,7 +105,7 @@ test-xor:
 	rm -f $(XOR_TESTBENCH)
 
 # Test all implementations
-test-all: test test-lvt test-xor
+test-all: test test-lvt test-xor test-timing
 	@echo "✅ All implementations (LVT, XOR, and auto-selection) tested successfully"
 
 # Test both LVT and XOR implementations
@@ -127,7 +136,8 @@ help:
 	@echo "  test-lvt    - Test LVT implementation specifically"
 	@echo "  test-xor    - Test XOR implementation specifically"
 	@echo "  test-both   - Test both LVT and XOR implementations"
-	@echo "  test-all    - Test all implementations (auto + LVT + XOR)"
+	@echo "  test-all    - Test all implementations (auto + LVT + XOR + timing)"
+	@echo "  test-timing - Generate timing specification waveforms"
 	@echo "  test-small  - Test with smaller parameters"
 	@echo "  help        - Show this help"
 	@echo ""

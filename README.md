@@ -73,6 +73,86 @@ The module automatically selects between two implementations:
 - **XOR Implementation**: Used when `(RdNum < 2 && Width < 8) || (Depth <= 16 && Width > 64)`
 - **LVT Implementation**: Used in all other cases
 
+## Interface Specification
+
+### Timing Behavior
+
+The multiport RAM follows **distributed RAM** timing characteristics:
+
+- **Write Operation**: Data is written on the positive edge of `clk` when `we[i]` is asserted
+- **Read Operation**: Data is available **combinatorially** after address change
+- **Read-after-Write**: New data is available on the same cycle as write (combinatorial read)
+
+### Write Conflict Resolution
+
+When multiple write ports target the **same address** on the **same cycle**:
+
+- **XOR Implementation**: Behavior is **undefined** - should be avoided
+- **LVT Implementation**: **Last writer wins** based on port priority (higher port index has priority)
+
+⚠️ **Important**: Users should avoid simultaneous writes to the same address for predictable behavior.
+
+### Timing Diagrams
+
+#### Basic Write-then-Read Operation
+```
+clk     ┌─┐   ┌─┐   ┌─┐   ┌─┐
+        │ │   │ │   │ │   │ │
+      ──┘ └───┘ └───┘ └───┘ └──
+
+we[0]   ────┐               ┌───
+            │               │
+        ────┘               └───
+
+wa[0]   ════════════[ADDR]══════
+din[0]  ════════════[DATA]══════
+
+ra[0]   ════════[ADDR]══════════
+                    ↓
+dout[0] ════[OLD]═══[DATA]══════
+                    ↑
+                Same cycle update
+```
+
+#### Write Conflict (Same Address, Same Cycle)
+```
+clk     ┌─┐   ┌─┐   ┌─┐
+        │ │   │ │   │ │
+      ──┘ └───┘ └───┘ └──
+
+we[0]   ────┐       ┌───
+we[1]   ────┤       ├─── ← Both enabled
+            │       │
+        ────┘       └───
+
+wa[0]   ════[ADDR]══════ ← Same address
+wa[1]   ════[ADDR]══════ ← Same address
+din[0]  ════[AAA]═══════
+din[1]  ════[BBB]═══════
+
+ra[0]   ════[ADDR]══════
+                ↓
+dout[0] ════════[BBB]═══ ← Port 1 wins (higher priority)
+```
+
+#### Simultaneous Read/Write (Same Address)
+```
+clk     ┌─┐   ┌─┐   ┌─┐
+        │ │   │ │   │ │
+      ──┘ └───┘ └───┘ └──
+
+we[0]   ────┐       ┌───
+            │       │
+        ────┘       └───
+
+wa[0]   ════[ADDR]══════
+din[0]  ════[NEW]═══════
+
+ra[0]   ════[ADDR]══════ ← Same address as write
+                ↓
+dout[0] ════[OLD]═[NEW]═ ← New data available same cycle
+```
+
 ## Usage Example
 
 ```systemverilog
@@ -112,7 +192,10 @@ make test
 make test-lvt
 make test-xor
 
-# Test all implementations
+# Generate timing specification waveforms
+make test-timing
+
+# Test all implementations including timing verification
 make test-all
 
 # Syntax check (design only)

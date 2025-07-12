@@ -4,6 +4,15 @@
 // Multi-port RAM with configurable read/write ports
 // Automatically selects between LVT and XOR implementation based on parameters
 // Reference: https://github.com/rsd-devel/rsd/blob/master/Processor/Src/Primitives/RAM.sv
+//
+// INTERFACE SPECIFICATION:
+// - Write: Data written on posedge clk when we[i] asserted
+// - Read:  Data available combinatorially after address change
+// - Read-after-Write: New data available same cycle as write
+// - Write Conflicts: Avoid simultaneous writes to same address
+//   * LVT: Higher port index has priority (port N beats port N-1)
+//   * XOR: Undefined behavior - should be avoided
+//
 `timescale 1ns/1ps
 
 module lx_ram_nrnw
@@ -14,12 +23,19 @@ module lx_ram_nrnw
   parameter DEBUG=0    // Enable debug features (0 or 1)
   )
   (
-    output logic [RdNum-1:0][Width-1:0] dout,
-    input logic clk,
-    input logic [WrNum-1:0][$clog2(Depth)-1:0] wa,
-    input logic [WrNum-1:0] we,
-    input logic [WrNum-1:0][Width-1:0] din,
-    input logic [RdNum-1:0][$clog2(Depth)-1:0] ra
+    // Read interface - combinatorial output
+    output logic [RdNum-1:0][Width-1:0] dout, // Read data [port][bit]
+    
+    // Clock
+    input logic clk,                           // Clock signal
+    
+    // Write interface - synchronous to clk
+    input logic [WrNum-1:0][$clog2(Depth)-1:0] wa,  // Write addresses [port][addr_bit]
+    input logic [WrNum-1:0] we,                      // Write enables [port]
+    input logic [WrNum-1:0][Width-1:0] din,         // Write data [port][bit]
+    
+    // Read interface - combinatorial address input
+    input logic [RdNum-1:0][$clog2(Depth)-1:0] ra   // Read addresses [port][addr_bit]
   );
 
   // Parameter validation (simulation only)
@@ -203,16 +219,18 @@ module ram_nrnw_xor
 
 endmodule
 
+// Basic 1-read-1-write distributed RAM building block
+// Timing: Write on posedge clk, Read combinatorial
 module dist_ram_1r1w
 #(parameter Width=8,  // Set a non-zero default
   parameter Depth=1)  // Set a non-zero default
   (
-    output logic [Width-1:0] dout,
-    input logic clk,
-    input logic [$clog2(Depth)-1:0] wa,
-    input logic we,
-    input logic [Width-1:0] din,
-    input logic [$clog2(Depth)-1:0] ra
+    output logic [Width-1:0] dout,              // Read data (combinatorial)
+    input logic clk,                            // Clock signal
+    input logic [$clog2(Depth)-1:0] wa,         // Write address
+    input logic we,                             // Write enable
+    input logic [Width-1:0] din,                // Write data
+    input logic [$clog2(Depth)-1:0] ra          // Read address (combinatorial)
   );
 
   logic [Width-1:0] rf[0:Depth-1];
