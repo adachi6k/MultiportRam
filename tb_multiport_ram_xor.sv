@@ -35,7 +35,7 @@ module tb_multiport_ram_xor;
     .Depth(Depth),
     .RdNum(RdNum),
     .WrNum(WrNum),
-    .DEBUG(1)
+    .DEBUG(0)  // Disable debug for cleaner output
   )
   uut (
     .dout(dout),

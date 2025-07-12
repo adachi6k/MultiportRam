@@ -217,6 +217,13 @@ module dist_ram_1r1w
 
   logic [Width-1:0] rf[0:Depth-1];
 
+  // Initialize memory to zero
+  initial begin
+    for (int i = 0; i < Depth; i++) begin
+      rf[i] = '0;
+    end
+  end
+
   always_ff @(posedge clk) begin
     if (we) begin
       rf[wa] <= #1 din;
