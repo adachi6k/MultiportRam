@@ -9,7 +9,9 @@
 *.str
 
 # Compiled binaries
-tb_*
+tb_multiport_ram
+tb_ram
+tb_xor_ram_nrnw
 *_tb
 test_*
 sim
