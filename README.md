@@ -94,64 +94,101 @@ When multiple write ports target the **same address** on the **same cycle**:
 
 ### Timing Diagrams
 
+The following timing diagrams use [WaveDrom](https://wavedrom.com/) format. You can view them interactively by:
+- Using VS Code with WaveDrom extension
+- Copying the JSON to [wavedrom.com](https://wavedrom.com/)
+- Using GitHub's built-in WaveDrom renderer
+
 #### Basic Write-then-Read Operation
-```
-clk     ┌─┐   ┌─┐   ┌─┐   ┌─┐
-        │ │   │ │   │ │   │ │
-      ──┘ └───┘ └───┘ └───┘ └──
 
-we[0]   ────┐               ┌───
-            │               │
-        ────┘               └───
-
-wa[0]   ════════════[ADDR]══════
-din[0]  ════════════[DATA]══════
-
-ra[0]   ════════[ADDR]══════════
-                    ↓
-dout[0] ════[OLD]═══[DATA]══════
-                    ↑
-                Same cycle update
+```wavedrom
+{
+  "signal": [
+    {"name": "clk",     "wave": "p....|..."},
+    {"name": "we[0]",   "wave": "01.0|..."},
+    {"name": "wa[0]",   "wave": "x3..|...", "data": ["ADDR"]},
+    {"name": "din[0]",  "wave": "x4..|...", "data": ["DATA"]},
+    {"name": "ra[0]",   "wave": "x3..|...", "data": ["ADDR"]},
+    {"name": "dout[0]", "wave": "x2.4|...", "data": ["OLD", "DATA"]}
+  ],
+  "config": { "hscale": 2 },
+  "head": {
+    "text": "Write-then-Read: New data available same cycle as write"
+  }
+}
 ```
 
 #### Write Conflict (Same Address, Same Cycle)
-```
-clk     ┌─┐   ┌─┐   ┌─┐
-        │ │   │ │   │ │
-      ──┘ └───┘ └───┘ └──
 
-we[0]   ────┐       ┌───
-we[1]   ────┤       ├─── ← Both enabled
-            │       │
-        ────┘       └───
-
-wa[0]   ════[ADDR]══════ ← Same address
-wa[1]   ════[ADDR]══════ ← Same address
-din[0]  ════[AAA]═══════
-din[1]  ════[BBB]═══════
-
-ra[0]   ════[ADDR]══════
-                ↓
-dout[0] ════════[BBB]═══ ← Port 1 wins (higher priority)
+```wavedrom
+{
+  "signal": [
+    {"name": "clk",     "wave": "p..|."},
+    {"name": "we[0]",   "wave": "01.|."},
+    {"name": "we[1]",   "wave": "01.|."},
+    {"name": "wa[0]",   "wave": "x3.|.", "data": ["ADDR"]},
+    {"name": "wa[1]",   "wave": "x3.|.", "data": ["ADDR"]},
+    {"name": "din[0]",  "wave": "x4.|.", "data": ["AAA"]},
+    {"name": "din[1]",  "wave": "x5.|.", "data": ["BBB"]},
+    {"name": "ra[0]",   "wave": "x3.|.", "data": ["ADDR"]},
+    {"name": "dout[0]", "wave": "x.5|.", "data": ["BBB"]}
+  ],
+  "config": { "hscale": 2 },
+  "head": {
+    "text": "Write Conflict: Port 1 wins (higher priority in LVT)"
+  }
+}
 ```
 
 #### Simultaneous Read/Write (Same Address)
+
+```wavedrom
+{
+  "signal": [
+    {"name": "clk",     "wave": "p.|."},
+    {"name": "we[0]",   "wave": "01|."},
+    {"name": "wa[0]",   "wave": "x3|.", "data": ["ADDR"]},
+    {"name": "din[0]",  "wave": "x4|.", "data": ["NEW"]},
+    {"name": "ra[0]",   "wave": "x3|.", "data": ["ADDR"]},
+    {"name": "dout[0]", "wave": "x24", "data": ["OLD", "NEW"]}
+  ],
+  "config": { "hscale": 2 },
+  "head": {
+    "text": "Simultaneous Read/Write: New data available same cycle"
+  }
+}
 ```
-clk     ┌─┐   ┌─┐   ┌─┐
-        │ │   │ │   │ │
-      ──┘ └───┘ └───┘ └──
 
-we[0]   ────┐       ┌───
-            │       │
-        ────┘       └───
+#### Complete Multi-cycle Operation Example
 
-wa[0]   ════[ADDR]══════
-din[0]  ════[NEW]═══════
-
-ra[0]   ════[ADDR]══════ ← Same address as write
-                ↓
-dout[0] ════[OLD]═[NEW]═ ← New data available same cycle
+```wavedrom
+{
+  "signal": [
+    {"name": "clk",      "wave": "p........"},
+    {"name": "we[0]",    "wave": "010..10.."},
+    {"name": "we[1]",    "wave": "0.010...."},
+    {"name": "wa[0]",    "wave": "x3.x.4x..", "data": ["5", "7"]},
+    {"name": "wa[1]",    "wave": "x.5.x....", "data": ["5"]},
+    {"name": "din[0]",   "wave": "x6.x.7x..", "data": ["AA", "CC"]},
+    {"name": "din[1]",   "wave": "x.8.x....", "data": ["BB"]},
+    {"name": "ra[0]",    "wave": "x3...45..", "data": ["5", "7", "5"]},
+    {"name": "ra[1]",    "wave": "x..3.4...", "data": ["5", "7"]},
+    {"name": "dout[0]",  "wave": "x2...67..", "data": ["00", "BB", "CC"]},
+    {"name": "dout[1]",  "wave": "x..2.6...", "data": ["00", "BB"]}
+  ],
+  "config": { "hscale": 1 },
+  "head": {
+    "text": "Multi-cycle Example: Shows write conflicts and read timing"
+  }
+}
 ```
+
+**Key observations from the timing diagrams:**
+- **Cycle 1**: Write AA to address 5 on port 0
+- **Cycle 2**: Write BB to address 5 on port 1 (conflicts with previous write, port 1 wins)
+- **Cycle 3**: Both reads show BB (result of port 1 winning the conflict)
+- **Cycle 6**: Write CC to address 7 on port 0
+- **Cycle 7**: Read from address 7 immediately shows CC (same-cycle read/write)
 
 ## Usage Example
 
