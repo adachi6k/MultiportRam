@@ -94,14 +94,25 @@ When multiple write ports target the **same address** on the **same cycle**:
 
 ### Timing Diagrams
 
-The following timing diagrams use [WaveDrom](https://wavedrom.com/) format. You can view them interactively by:
-- Using VS Code with WaveDrom extension
-- Copying the JSON to [wavedrom.com](https://wavedrom.com/)
-- Using GitHub's built-in WaveDrom renderer
+The following timing diagrams use [WaveDrom](https://wavedrom.com/) JSON format. To view them as interactive timing diagrams:
+
+**Option 1: VS Code Extension**
+- Install the "WaveDrom" extension in VS Code
+- View this README.md file in VS Code for interactive diagrams
+
+**Option 2: Online WaveDrom Editor**
+- Copy the JSON code blocks below
+- Paste them into [wavedrom.com](https://wavedrom.com/) online editor
+
+**Option 3: GitHub WaveDrom Viewer**
+- Some GitHub repositories support WaveDrom rendering
+- The JSON format below is compatible with various WaveDrom viewers
+
+⚠️ **Note**: If you see JSON code instead of timing diagrams on GitHub, use Options 1 or 2 above.
 
 #### Basic Write-then-Read Operation
 
-```wavedrom
+```json
 {
   "signal": [
     {"name": "clk",     "wave": "p....|..."},
@@ -120,7 +131,7 @@ The following timing diagrams use [WaveDrom](https://wavedrom.com/) format. You 
 
 #### Write Conflict (Same Address, Same Cycle)
 
-```wavedrom
+```json
 {
   "signal": [
     {"name": "clk",     "wave": "p..|."},
@@ -142,7 +153,7 @@ The following timing diagrams use [WaveDrom](https://wavedrom.com/) format. You 
 
 #### Simultaneous Read/Write (Same Address)
 
-```wavedrom
+```json
 {
   "signal": [
     {"name": "clk",     "wave": "p.|."},
@@ -161,7 +172,7 @@ The following timing diagrams use [WaveDrom](https://wavedrom.com/) format. You 
 
 #### Complete Multi-cycle Operation Example
 
-```wavedrom
+```json
 {
   "signal": [
     {"name": "clk",      "wave": "p........"},
