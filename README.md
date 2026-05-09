@@ -3,7 +3,7 @@
 A configurable **FPGA-oriented multi-port register file / distributed RAM** implementation in SystemVerilog that automatically selects between LVT (Last Value Table) and XOR-based implementations based on design parameters.
 
 > **Important timing/modeling note**  
-> This project models FPGA distributed RAM/register-file behavior:
+> This project models FPGA distributed RAM/register file behavior:
 > - **Read**: combinatorial/asynchronous (`assign dout = rf[ra]`)
 > - **Write**: synchronous to `clk` (`always_ff @(posedge clk)`)
 > - **Same-cycle read-after-write**: supported (new data can be observed in the write cycle)
@@ -89,7 +89,7 @@ The module automatically selects between two implementations:
 
 ### Timing Behavior
 
-The multi-port register file follows **distributed RAM** timing characteristics:
+The multi-port register file / distributed RAM follows **distributed RAM** timing characteristics:
 
 - **Write Operation**: Data is written on the positive edge of `clk` when `we[i]` is asserted
 - **Read Operation**: Data is available **combinatorially** after address change
