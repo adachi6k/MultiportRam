@@ -1,6 +1,17 @@
-# Multi-Port RAM Implementation
+# FPGA Multi-Port Register File / Distributed RAM (SystemVerilog)
 
-A configurable multi-port RAM implementation in SystemVerilog that automatically selects between LVT (Last Value Table) and XOR-based implementations based on design parameters.
+A configurable **FPGA-oriented multi-port register file / distributed RAM** implementation in SystemVerilog that automatically selects between LVT (Last Value Table) and XOR-based implementations based on design parameters.
+
+> **Important timing/modeling note**  
+> This project models FPGA distributed RAM/register-file behavior:
+> - **Read**: combinational/asynchronous (`assign dout = rf[ra]`)
+> - **Write**: synchronous to `clk` (`always_ff @(posedge clk)`)
+> - **Same-cycle read-after-write**: supported (new data can be observed in the write cycle)
+>
+> This is **not** a generic ASIC SRAM macro timing model. Many ASIC SRAM macros use synchronous reads with one-or-more-cycle read latency and macro-specific read-during-write behavior.
+
+> **Naming note**  
+> The repository name historically uses "RAM", but implemented behavior is closer to an FPGA distributed RAM / multi-port register file.
 
 ## File Structure
 
@@ -30,6 +41,7 @@ MultiportRam/
 
 ## Features
 
+- **FPGA-Oriented Behavior**: Distributed RAM/register-file style timing
 - **Configurable Parameters**: Width, depth, and number of read/write ports
 - **Automatic Implementation Selection**: Chooses optimal implementation based on parameters
 - **Debug Support**: Optional debug features for verification
@@ -77,11 +89,13 @@ The module automatically selects between two implementations:
 
 ### Timing Behavior
 
-The multiport RAM follows **distributed RAM** timing characteristics:
+The multi-port register file follows **distributed RAM** timing characteristics:
 
 - **Write Operation**: Data is written on the positive edge of `clk` when `we[i]` is asserted
 - **Read Operation**: Data is available **combinatorially** after address change
 - **Read-after-Write**: New data is available on the same cycle as write (combinatorial read)
+
+These semantics intentionally match FPGA-style distributed RAM/register files, and differ from many ASIC SRAM macros that provide synchronous/registered reads.
 
 ### Write Conflict Resolution
 
@@ -204,7 +218,7 @@ The following timing diagrams use [WaveDrom](https://wavedrom.com/) JSON format.
 ## Usage Example
 
 ```systemverilog
-// Instantiate a 32-bit wide, 64-entry deep RAM with 2 read and 2 write ports
+// Instantiate a 32-bit wide, 64-entry deep multi-port register file with 2 read and 2 write ports
 lx_ram_nrnw #(
     .Width(32),
     .Depth(64),
@@ -283,7 +297,7 @@ xsim tb_sim -R
 
 1. **LVT Implementation**: Uses a Last Value Table to track which write port last wrote to each address
 2. **XOR Implementation**: Uses XOR-based encoding for conflict resolution
-3. **Memory Initialization**: Memory contents are undefined at startup (no reset)
+3. **Memory Initialization**: In simulation, `dist_ram_1r1w` initializes storage to zero via an `initial` block (no explicit reset port)
 4. **Write Conflicts**: When multiple write ports target the same address, behavior depends on implementation
 
 ## License
@@ -296,4 +310,3 @@ MultiportRAM optimized for FPGA. (Registerfile rather than SRAM)
 
 https://github.com/rsd-devel/rsd/blob/master/Processor/Src/Primitives/RAM.sv
 "Multi-ported memories for FPGAs via XOR", Laforest, Charles Eric et. al., FPGA 2012
-
