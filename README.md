@@ -4,7 +4,7 @@ A configurable **FPGA-oriented multi-port register file / distributed RAM** impl
 
 > **Important timing/modeling note**  
 > This project models FPGA distributed RAM/register-file behavior:
-> - **Read**: combinational/asynchronous (`assign dout = rf[ra]`)
+> - **Read**: combinatorial/asynchronous (`assign dout = rf[ra]`)
 > - **Write**: synchronous to `clk` (`always_ff @(posedge clk)`)
 > - **Same-cycle read-after-write**: supported (new data can be observed in the write cycle)
 >
@@ -297,7 +297,7 @@ xsim tb_sim -R
 
 1. **LVT Implementation**: Uses a Last Value Table to track which write port last wrote to each address
 2. **XOR Implementation**: Uses XOR-based encoding for conflict resolution
-3. **Memory Initialization**: In simulation, `dist_ram_1r1w` initializes storage to zero via an `initial` block (no explicit reset port)
+3. **Memory Initialization**: In simulation, the `dist_ram_1r1w` building blocks used by both LVT/XOR paths initialize storage to zero via `initial` blocks (no explicit reset port)
 4. **Write Conflicts**: When multiple write ports target the same address, behavior depends on implementation
 
 ## License
